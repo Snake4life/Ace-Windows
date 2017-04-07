@@ -64,7 +64,7 @@ namespace Ace
             } else
             {
                 key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\LeagueClientUx.exe");
-                if (key.GetValue("debugger") == null || key.GetValue("debugger").ToString() != injectorExePath)
+                if (key == null || key.GetValue("debugger") == null || key.GetValue("debugger").ToString() != injectorExePath)
                 {
                     DialogResult dialogResult = MessageBox.Show(
                         "Ace requires Admin access to run for the first time.",

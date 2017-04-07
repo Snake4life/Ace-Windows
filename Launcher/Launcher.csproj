@@ -133,8 +133,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>copy $(TargetDir)injector.exe $(ProjectDir)Resources\injector.exe
-copy $(TargetDir)payload.dll $(ProjectDir)Resources\payload.dll</PreBuildEvent>
+    <PreBuildEvent>copy $(SolutionDir)Release\injector.exe $(ProjectDir)Resources\injector.exe
+copy $(SolutionDir)Release\payload.dll $(ProjectDir)Resources\payload.dll</PreBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\Fody.1.29.4\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.1.29.4\build\dotnet\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
