@@ -1,7 +1,10 @@
 # Ace-Windows
 
 ## Launcher
-Executable that launches the LCU with Ace loaded and ready to go.
+Executable that launches the LCU and updates Ace.
+
+## Injector
+Executable that runs as a debugger to the LCU Ux process and injects Ace javascript
 
 ## Payload
 Hooks code in libcef.dll to inject Ace on page loads.
