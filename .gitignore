@@ -1,4 +1,5 @@
 Launcher/Resources/payload.dll
+Launcher/Resources/injector.exe
 Launcher/Resources/bundle.js
 
 ## Ignore Visual Studio temporary files, build results, and

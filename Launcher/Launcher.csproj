@@ -12,6 +12,9 @@
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -24,11 +27,8 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -107,17 +107,19 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\bundle.js" />
+    <EmbeddedResource Include="Resources\bundle.js" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\inject.js" />
+    <EmbeddedResource Include="Resources\inject.js" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="ace_icon.ico" />
-    <Content Include="FodyWeavers.xml" />
-    <Content Include="Resources\bundle_dev.js" />
-    <None Include="Resources\injector.exe" />
-    <Content Include="Resources\payload.dll" />
+    <Content Include="FodyWeavers.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <EmbeddedResource Include="Resources\bundle_dev.js" />
+    <EmbeddedResource Include="Resources\injector.exe" />
+    <EmbeddedResource Include="Resources\payload.dll" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">
@@ -133,8 +135,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>copy $(SolutionDir)Release\injector.exe $(ProjectDir)Resources\injector.exe
-copy $(SolutionDir)Release\payload.dll $(ProjectDir)Resources\payload.dll</PreBuildEvent>
+    <PreBuildEvent>copy ..\Release\injector.exe $(ProjectDir)Resources\injector.exe
+copy ..\Release\payload.dll $(ProjectDir)Resources\payload.dll</PreBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\Fody.1.29.4\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.1.29.4\build\dotnet\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

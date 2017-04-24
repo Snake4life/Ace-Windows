@@ -21,6 +21,7 @@ namespace Ace
         static string injectorExePath = Path.Combine(dataDir, "injector.exe");
         static string payloadDllPath = Path.Combine(dataDir, "payload.dll");
         static string currentExe = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        private static readonly string LauncherVersion = "2.0.0";
 
         /// <summary>
         /// The main entry point for the application.
@@ -81,7 +82,7 @@ namespace Ace
                     process.WaitForExit();
                 }
             }
-            
+
             if (Update())
             {
                 ProcessStartInfo startInfo;
@@ -92,7 +93,7 @@ namespace Ace
 
             if (CheckLCU())
             {
-                DialogResult promptResult = MessageBox.Show(
+                DialogResult dialogResult = MessageBox.Show(
                     "Ace has detected that the LCU is already running. Do you want to stop it?",
                     "Ace",
                     MessageBoxButtons.YesNo,
@@ -100,11 +101,24 @@ namespace Ace
                     MessageBoxDefaultButton.Button1
                 );
 
-                if (promptResult == DialogResult.Yes)
+                if (dialogResult == DialogResult.Yes)
                     KillLCU();
                 else
                     return;
             }
+
+            SemVersion bundleVer;
+            if (!File.Exists(bundleJsPath) ||
+                !SemVersion.TryParse(GetBundleVersion(Encoding.UTF8.GetString(Properties.Resources.bundle)), out bundleVer) ||
+                GetBundleVersion(File.ReadAllText(bundleJsPath)) < bundleVer)
+            {
+                File.WriteAllBytes(bundleJsPath, Properties.Resources.bundle);
+            }
+
+            File.WriteAllBytes(bundle_devJsPath, Properties.Resources.bundle_dev);
+            File.WriteAllBytes(injectJsPath, Properties.Resources.inject);
+            File.WriteAllBytes(injectorExePath, Properties.Resources.injector);
+            File.WriteAllBytes(payloadDllPath, Properties.Resources.payload);
 
             LaunchLCU(exe, argLine, dev ? bundle_devJsPath : bundleJsPath, injectJsPath);
         }
@@ -112,16 +126,8 @@ namespace Ace
         // Launches the LCU with the provided path, arguments and payloads.
         static void LaunchLCU(string path, string argLine, string initialPayload, string loadPayload)
         {
-            File.WriteAllBytes(bundleJsPath, Properties.Resources.bundle);
-            File.WriteAllBytes(bundle_devJsPath, Properties.Resources.bundle_dev);
-            File.WriteAllBytes(injectJsPath, Properties.Resources.inject);
-            File.WriteAllBytes(injectorExePath, Properties.Resources.injector);
-            File.WriteAllBytes(payloadDllPath, Properties.Resources.payload);
-
-            ProcessStartInfo startInfo;
-
             // Start LeagueClient.exe
-            startInfo = new ProcessStartInfo { FileName = path, UseShellExecute = false, Arguments = argLine };
+            ProcessStartInfo startInfo = new ProcessStartInfo { FileName = path, UseShellExecute = false, Arguments = argLine };
             startInfo.EnvironmentVariables["ACE_INITIAL_PAYLOAD"] = initialPayload;
             startInfo.EnvironmentVariables["ACE_LOAD_PAYLOAD"] = loadPayload;
             Process.Start(startInfo);
@@ -173,64 +179,66 @@ namespace Ace
         {
             try
             {
-                if (File.Exists(currentExe + ".old"))
+                string[][] updaters = new string[][]{
+                    //          { "GitHub Repo Name", "GitHub Asset Name", "File Path", "Local Version" }
+                    new string[]{ "ace-windows", "Ace.exe", currentExe, LauncherVersion },
+                    new string[]{ "ace", "bundle.js", bundleJsPath, File.Exists(bundleJsPath) ? GetBundleVersion(File.ReadAllText(bundleJsPath)) : "0.0.0" },
+                };
+
+                foreach (string[] updater in updaters)
                 {
-                    File.Delete(currentExe + ".old");
-                    return false;
+                    // Delete old file if it exists.
+                    if (File.Exists(updater[2])) File.Delete(updater[2]);
+
+                    string json = Encoding.UTF8.GetString(RequestURL($"https://api.github.com/repos/zombiewizzard/{updater[0]}/releases").ToArray());
+                    JsonArray data = SimpleJson.DeserializeObject<JsonArray>(json);
+                    if (data.Count < 1) continue;
+
+                    JsonObject latest = (JsonObject)data[0];
+                    string release = (string)latest["tag_name"];
+                    if (release == null) continue;
+
+                    SemVersion newVer;
+                    // If the semver isn't vaalid or if we are already on the newsest version
+                    if (!SemVersion.TryParse(release, out newVer) || newVer <= updater[3]) continue;
+
+                    DialogResult dialogResult = MessageBox.Show(
+                        "Ace has detected an update is available, would you like to install it now?",
+                        "Update downloaded",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question
+                    );
+
+                    // If user doesn't want to install update don't check for any more updates.
+                    if (dialogResult == DialogResult.No) return false;
+
+                    JsonArray assets = (JsonArray)latest["assets"];
+                    if (assets == null) continue;
+                    if (assets.Count < 1) continue;
+
+                    JsonObject asset = (JsonObject)assets.Find(x => ((string)((JsonObject)x)["name"]) == updater[1]);
+                    if (asset == null) continue;
+
+                    MemoryStream newData = RequestURL((string)asset["browser_download_url"]);
+                    if (newData == null) continue;
+
+                    File.Move(updater[2], $"{updater[2]}.old");
+                    using (FileStream fileWriter = File.OpenWrite(updater[2])) newData.CopyTo(fileWriter);
+
+                    return true;
                 }
 
-                string json = Encoding.UTF8.GetString(RequestURL("https://api.github.com/repos/zombiewizzard/ace-windows/releases").ToArray());
-                JsonArray data = SimpleJson.DeserializeObject<JsonArray>(json);
-                if (data.Count < 1) return false;
-
-                JsonObject latest = (JsonObject)data[0];
-                string release = (string)latest["tag_name"];
-                if (release == null) return false;
-
-                SemVersion newVer;
-                //If the semver isn't valid or if we are already on the newest version.
-                if (!SemVersion.TryParse(release, out newVer) || newVer <= GetBundleVersion()) return false;
-
-                DialogResult promptResult = MessageBox.Show(
-                    "Ace has detected a new version is available, would you like to update Ace?",
-                    "Update",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question
-                );
-
-                if (promptResult != DialogResult.Yes) return false;
-
-                JsonArray assets = (JsonArray)latest["assets"];
-                if (assets == null) return false;
-                if (assets.Count < 1) return false;
-
-                JsonObject asset = (JsonObject)assets.Find(x => ((string)((JsonObject)x)["name"]) == "Ace.exe");
-                if (asset == null) return false;
-
-                MemoryStream newData = RequestURL((string)asset["browser_download_url"]);
-                if (newData == null) return false;
-
-                File.Move(currentExe, currentExe + ".old");
-                File.WriteAllBytes(currentExe, newData.ToArray());
-
-                using (FileStream fileWriter = File.OpenWrite(currentExe))
-                {
-                    newData.CopyTo(fileWriter);
-                }
-
-                return true;
+                // No updates could be found.
+                return false;
             } catch (Exception ex) {
-                Console.WriteLine("error: " + ex);
+                Console.WriteLine("Error: " + ex);
                 return false;
             }
         }
         
-        // Tries to find the current version from the currently installed bundle.
-        static string GetBundleVersion()
+        // Tries to find the current version from the provided bundle contents.
+        static string GetBundleVersion(string contents)
         {
-            string bundleJsPath = Path.Combine(dataDir, "bundle.js");
-
-            string contents = File.ReadAllText(bundleJsPath);
             Match match = Regex.Match(contents, "window\\.ACE_VERSION\\s?=\\s?\"(.*?)\"");
             return match.Groups[1].ToString();
         }
@@ -282,24 +290,6 @@ namespace Ace
         static bool IsPathValid(string path)
         {
             return Directory.Exists(path) && Directory.Exists(Path.Combine(path, "RADS")) && Directory.Exists(Path.Combine(path, "RADS\\projects\\league_client"));
-        }
-
-        // Finds the newest league_client release and returns the path to that release.
-        static string GetClientProjectPath(string path)
-        {
-            string p = Path.Combine(path, "RADS/projects/league_client/releases");
-            return Directory.GetDirectories(p).Select(x => {
-                try
-                {
-                    // Convert 0.0.0.29 to 29.
-                    return new { Path = x, Version = int.Parse(Path.GetFileName(x).Replace(".", "")) };
-                }
-                catch (FormatException)
-                {
-                    // Invalid path, -1.
-                    return new { Path = x, Version = -1 };
-                }
-            }).OrderBy(x => x.Version).Last().Path;
         }
     }
 }
