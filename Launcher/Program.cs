@@ -108,9 +108,10 @@ namespace Ace
             }
 
             SemVersion bundleVer;
+            SemVersion currentVer;
             if (!File.Exists(bundleJsPath) ||
                 !SemVersion.TryParse(GetBundleVersion(Encoding.UTF8.GetString(Properties.Resources.bundle)), out bundleVer) ||
-                GetBundleVersion(File.ReadAllText(bundleJsPath)) < bundleVer)
+                !SemVersion.TryParse(GetBundleVersion(File.ReadAllText(bundleJsPath)), out currentVer) || currentVer < bundleVer)
             {
                 File.WriteAllBytes(bundleJsPath, Properties.Resources.bundle);
             }
