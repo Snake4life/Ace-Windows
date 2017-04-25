@@ -21,7 +21,7 @@ namespace Ace
         static string injectorExePath = Path.Combine(dataDir, "injector.exe");
         static string payloadDllPath = Path.Combine(dataDir, "payload.dll");
         static string currentExe = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        private static readonly string LauncherVersion = "2.0.0";
+        private static readonly string LauncherVersion = "2.0.1";
 
         /// <summary>
         /// The main entry point for the application.
@@ -189,7 +189,7 @@ namespace Ace
                 foreach (string[] updater in updaters)
                 {
                     // Delete old file if it exists.
-                    if (File.Exists(updater[2])) File.Delete(updater[2]);
+                    if (File.Exists(updater[2] + ".old")) File.Delete(updater[2] + ".old");
 
                     string json = Encoding.UTF8.GetString(RequestURL($"https://api.github.com/repos/zombiewizzard/{updater[0]}/releases").ToArray());
                     JsonArray data = SimpleJson.DeserializeObject<JsonArray>(json);
