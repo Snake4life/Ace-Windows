@@ -21,7 +21,7 @@ namespace Ace
         static string injectorExePath = Path.Combine(dataDir, "injector.exe");
         static string payloadDllPath = Path.Combine(dataDir, "payload.dll");
         static string currentExe = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        private static readonly string LauncherVersion = "2.0.1";
+        private static readonly string LauncherVersion = "2.0.2";
 
         /// <summary>
         /// The main entry point for the application.
@@ -111,7 +111,7 @@ namespace Ace
             SemVersion currentVer;
             if (!File.Exists(bundleJsPath) ||
                 !SemVersion.TryParse(GetBundleVersion(Encoding.UTF8.GetString(Properties.Resources.bundle)), out bundleVer) ||
-                !SemVersion.TryParse(GetBundleVersion(File.ReadAllText(bundleJsPath)), out currentVer) || currentVer < bundleVer)
+                !SemVersion.TryParse(GetBundleVersion(File.ReadAllText(bundleJsPath)), out currentVer) || currentVer > bundleVer)
             {
                 File.WriteAllBytes(bundleJsPath, Properties.Resources.bundle);
             }
